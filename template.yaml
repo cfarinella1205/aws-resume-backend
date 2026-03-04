@@ -1,31 +1,55 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  Backend for Cloud Resume Challenge - Python/SAM
+  AWS Cloud Resume Challenge - Backend Infrastructure
+
+Globals:
+  Function:
+    Timeout: 3
+    MemorySize: 128
+  Api:
+    # This Global section handles CORS for the entire API Gateway
+    Cors:
+      AllowMethods: "'GET,OPTIONS'"
+      AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+      AllowOrigin: "'*'"
 
 Resources:
-  # This creates the Lambda Function AND the API Gateway
   MyVisitorCounterFunction:
-    Type: AWS::Serverless::Function 
+    Type: AWS::Serverless::Function
     Properties:
       CodeUri: src/
       Handler: app.lambda_handler
       Runtime: python3.9
       Architectures:
         - x86_64
+      Policies:
+        # Grants the Lambda permission to read/write to your specific table
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MyDynamoDBTable
+      Environment:
+        Variables:
+          DATABASE_TABLE_NAME: !Ref MyDynamoDBTable
       Events:
-        # This automatically creates the API Gateway endpoint
-        VisitorApi:
+        GetVisitorCount:
           Type: Api
           Properties:
-            Path: /getcount
+            Path: /visitor
             Method: get
 
-  # This creates the DynamoDB Table (Step 8)
   MyDynamoDBTable:
-    Type: AWS::Serverless::SimpleTable
+    Type: AWS::DynamoDB::Table
     Properties:
       TableName: CloudResumeCounter
-      PrimaryKey:
-        Name: id
-        Type: String
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+Outputs:
+  WebEndpoint:
+    Description: "API Gateway endpoint URL for Prod stage"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/visitor/"
