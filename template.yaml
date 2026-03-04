@@ -1,0 +1,31 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Backend for Cloud Resume Challenge - Python/SAM
+
+Resources:
+  # This creates the Lambda Function AND the API Gateway
+  MyVisitorCounterFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: src/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Architectures:
+        - x86_64
+      Events:
+        # This automatically creates the API Gateway endpoint
+        VisitorApi:
+          Type: Api
+          Properties:
+            Path: /getcount
+            Method: get
+
+  # This creates the DynamoDB Table (Step 8)
+  MyDynamoDBTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      TableName: CloudResumeCounter
+      PrimaryKey:
+        Name: id
+        Type: String
